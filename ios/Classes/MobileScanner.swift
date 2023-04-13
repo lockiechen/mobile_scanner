@@ -138,7 +138,9 @@ public class MobileScanner: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
             }
-            
+            if #available(iOS 15.4, *) , device.isFocusModeSupported(.autoFocus) {
+                device.isSmoothAutoFocusEnabled = false
+            }
             device.unlockForConfiguration()
         } catch {}
 
