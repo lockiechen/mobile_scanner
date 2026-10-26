@@ -53,7 +53,7 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
     var standardZoomFactor: CGFloat = 1
 
 #if os(iOS)
-    var interfaceOrientationObserver: NSObjectProtocol?
+    var interfaceOrientationObservers: [NSObjectProtocol] = []
 #endif
 
     /// Observer for the notification that the app is about to terminate.
@@ -415,26 +415,13 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
 
     private func getVideoOrientation() -> AVCaptureVideoOrientation {
 #if os(iOS)
-        // Set video orientation to match interface orientation
-        // This ensures the camera feed is correctly oriented
-        if #available(iOS 13.0, *) {
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                let orientation = windowScene.interfaceOrientation
-                switch orientation {
-                case .portrait:
-                    return .portrait
-                case .portraitUpsideDown:
-                    return .portraitUpsideDown
-                case .landscapeLeft:
-                    return .landscapeLeft
-                case .landscapeRight:
-                    return .landscapeRight
-                default:
-                    return .portrait
-                }
-            }
+        switch scannerInterfaceOrientation() {
+        case .portrait: return .portrait
+        case .portraitUpsideDown: return .portraitUpsideDown
+        case .landscapeLeft: return .landscapeLeft
+        case .landscapeRight: return .landscapeRight
+        default: return .portrait
         }
-        return .portrait
 #else
         return .portrait
 #endif
@@ -797,23 +784,16 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
 #if os(iOS)
     /// Set up observer for interface orientation changes
     private func setupInterfaceOrientationObserver() {
-        if #available(iOS 13.0, *) {
-            interfaceOrientationObserver = NotificationCenter.default.addObserver(
-                forName: UIDevice.orientationDidChangeNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                self?.updateVideoOrientationFromInterfaceOrientation()
-            }
+        removeInterfaceOrientationObserver()
+        interfaceOrientationObservers = observeScannerInterfaceOrientation { [weak self] in
+            self?.updateVideoOrientationFromInterfaceOrientation()
         }
     }
 
-    /// Remove interface orientation observer
+    /// Remove interface orientation observers.
     private func removeInterfaceOrientationObserver() {
-        if let observer = interfaceOrientationObserver {
-            NotificationCenter.default.removeObserver(observer)
-            interfaceOrientationObserver = nil
-        }
+        interfaceOrientationObservers.forEach(NotificationCenter.default.removeObserver)
+        interfaceOrientationObservers.removeAll()
     }
 
     /// Update video orientation to match current interface orientation

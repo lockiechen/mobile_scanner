@@ -12,7 +12,7 @@
 class DeviceOrientationStreamHandler: NSObject, FlutterStreamHandler {
 
     private var eventSink: FlutterEventSink?
-    private var orientationObserver: NSObjectProtocol?
+    private var orientationObservers: [NSObjectProtocol] = []
     private var lastSentOrientation: UIInterfaceOrientation?
     private var lastSentDeviceOrientation: UIDeviceOrientation?
 
@@ -20,11 +20,7 @@ class DeviceOrientationStreamHandler: NSObject, FlutterStreamHandler {
         self.eventSink = events
 
         UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-        orientationObserver = NotificationCenter.default.addObserver(
-            forName: UIDevice.orientationDidChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        orientationObservers = observeScannerInterfaceOrientation { [weak self] in
             self?.sendCurrentOrientation()
         }
 
@@ -33,10 +29,8 @@ class DeviceOrientationStreamHandler: NSObject, FlutterStreamHandler {
     }
 
     func onCancel(withArguments arguments: Any?) -> FlutterError? {
-        if let observer = orientationObserver {
-            NotificationCenter.default.removeObserver(observer)
-            orientationObserver = nil
-        }
+        orientationObservers.forEach(NotificationCenter.default.removeObserver)
+        orientationObservers.removeAll()
 
         UIDevice.current.endGeneratingDeviceOrientationNotifications()
         eventSink = nil
@@ -51,11 +45,7 @@ class DeviceOrientationStreamHandler: NSObject, FlutterStreamHandler {
         // Use interface orientation instead of device orientation
         // This respects Flutter's setPreferredOrientations
         if #available(iOS 13.0, *) {
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-                return
-            }
-
-            let interfaceOrientation = windowScene.interfaceOrientation
+            let interfaceOrientation = scannerInterfaceOrientation()
 
             // Only send event if interface orientation has changed
             if lastSentOrientation == interfaceOrientation {

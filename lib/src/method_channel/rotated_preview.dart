@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:mobile_scanner/src/enums/camera_facing.dart';
 
@@ -107,6 +108,15 @@ final class _RotatedPreviewState extends State<RotatedPreview> {
       DeviceOrientation.portraitDown => 180,
       DeviceOrientation.landscapeLeft => 270,
     };
+
+    if (defaultTargetPlatform.name == 'ohos') {
+      return switch (orientation) {
+        DeviceOrientation.portraitUp => 0,
+        DeviceOrientation.landscapeRight => 90,
+        DeviceOrientation.portraitDown => 180,
+        DeviceOrientation.landscapeLeft => 270,
+      };
+    }
 
     // Rotate the camera preview according to
     // https://developer.android.com/media/camera/camera2/camera-preview#orientation_calculation.

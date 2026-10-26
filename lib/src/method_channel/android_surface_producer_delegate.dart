@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'surface_producer_delegate.dart';
 import 'package:mobile_scanner/src/enums/camera_facing.dart';
 import 'package:mobile_scanner/src/enums/mobile_scanner_error_code.dart';
 import 'package:mobile_scanner/src/mobile_scanner_exception.dart';
@@ -6,7 +7,7 @@ import 'package:mobile_scanner/src/utils/parse_device_orientation_extension.dart
 
 /// This class will manage the orientation corrections for textures
 /// that are provided by the SurfaceProducer API on Android.
-class AndroidSurfaceProducerDelegate {
+class AndroidSurfaceProducerDelegate implements SurfaceProducerDelegate {
   /// Construct a new [AndroidSurfaceProducerDelegate].
   AndroidSurfaceProducerDelegate({
     required this.cameraFacingDirection,

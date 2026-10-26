@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'surface_producer_delegate.dart';
+import 'ohos_surface_producer_delegate.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -137,7 +139,7 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   }
 
   /// The delegate that handles texture rotation corrections on Android.
-  AndroidSurfaceProducerDelegate? _surfaceProducerDelegate;
+  SurfaceProducerDelegate? _surfaceProducerDelegate;
 
   /// The identifier of the current texture.
   int? _textureId;
@@ -159,7 +161,8 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
 
     if (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS) {
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform.name == 'ohos') {
       final imageData = event['image'] as Map<Object?, Object?>?;
       final image = imageData?['bytes'] as Uint8List?;
       final width = imageData?['width'] as double?;
@@ -315,8 +318,7 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
     // On Android, the underlying device orientation stream will emit the
     // current orientation
     // when the first listener is attached.
-    if (_surfaceProducerDelegate
-        case final AndroidSurfaceProducerDelegate delegate
+    if (_surfaceProducerDelegate case final SurfaceProducerDelegate delegate
         when !delegate.handlesCropAndRotation) {
       return RotatedPreview.fromCameraDirection(
         delegate.cameraFacingDirection,
@@ -343,7 +345,8 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   @override
   Future<void> setFocusPoint(Offset position) async {
     if (defaultTargetPlatform != TargetPlatform.iOS &&
-        defaultTargetPlatform != TargetPlatform.android) {
+        defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform.name != 'ohos') {
       throw UnimplementedError('setFocusPoint() has not been implemented.');
     }
 
@@ -417,6 +420,13 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
             startResult,
             cameraDirection,
           );
+      initialDeviceOrientation =
+          _surfaceProducerDelegate?.initialDeviceOrientation;
+    } else if (defaultTargetPlatform.name == 'ohos') {
+      _surfaceProducerDelegate = OhosSurfaceProducerDelegate.fromConfiguration(
+        startResult,
+        cameraDirection,
+      );
       initialDeviceOrientation =
           _surfaceProducerDelegate?.initialDeviceOrientation;
     } else if (startResult
@@ -517,9 +527,7 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   }
 
   @override
-  Future<Set<CameraLensType>> getSupportedLenses({
-    CameraFacing? facing,
-  }) async {
+  Future<Set<CameraLensType>> getSupportedLenses({CameraFacing? facing}) async {
     final lensTypes = await methodChannel.invokeListMethod<Object?>(
       kGetSupportedLensesMethodName,
       facing != null ? {'facing': facing.rawValue} : null,
